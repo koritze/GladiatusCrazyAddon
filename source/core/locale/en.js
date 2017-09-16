@@ -43,6 +43,8 @@ gca_languages["en"] = {
 		// General
 		general : {
 
+			// Days
+			days : "day(s)",
 			// Minites
 			minutes : "minute(s)",
 			// No data
@@ -73,6 +75,7 @@ gca_languages["en"] = {
 			message_sent_failed : "Failed to sent message",
 			message_empty : "The message is empty",
 			message_exclude_me : "Exclude me",
+
 			// Button bar buttons
 			guild_market_goto : "Go to guild's market",
 			guild_storage_goto : "Go to guild's storage",
@@ -84,10 +87,12 @@ gca_languages["en"] = {
 			simulator_goto : "Go to simulator",
 			stats_display : "Display my stats",
 			online_display : "Display online players",
+
 			// Online friends
 			online_friends : "Online Friends",
 			guild_friends : "Guild Friends",
 			family_friends : "Family Friends",
+
 			// Guild donate
 			donate_gold_confirm : "Are you sure you want to donate {{number}} gold?",
 			donate_gold_success : "Gold donated successfully",
@@ -179,6 +184,7 @@ gca_languages["en"] = {
 			category_pantheon : "Pantheon",
 			category_reports : "Reports",
 			category_training : "Training",
+			category_merchants : "Merchants",
 			category_expedition : "Expedition",
 			category_guild : "Guild",
 			category_auction : "Auction",
@@ -201,12 +207,14 @@ gca_languages["en"] = {
 			category_global$remember_tabs : "Remember merchands tabs",
 			category_global$attacked_timers : "Show attacked timers",
 			category_global$quest_timer : "Show quests status or timer",
+			category_global$merchants_timer : "Show merchands timer indicator",
 			category_global$player_image : "Enable players' images",
 			category_global$cooldown_sound_notifications : "Enable cooldowns sounds notifications (expedition, dungeon, arena)",
 			category_global$notify_new_guild_application : "Notify me when there is a new guild application",
 			category_global$notify_new_guild_application_interval : "Check for applications every (seconds)",
 			category_global$x_scroll : "Enable gladiatus' horizontal scroll",
 			category_global$item_shadow : "Enable items shadows",
+			category_global$inventory_options_group : "Group inventory options",
 			category_global$pagination_layout : "Change paginations layout",
 			category_global$gold_exp_data : "Show gold and exp data",
 			category_global$pray_shorcut : "Display pray shorcut",
@@ -242,12 +250,38 @@ gca_languages["en"] = {
 			category_packages$load_more_pages : "Load more pages",
 			category_packages$pages_to_load : "Number of pages to load",
 			category_packages$special_category_features : "Enable special category features",
-			// Settings - Packages
+			// Settings - Pantheon
 			category_pantheon$quests_reorder : "Enable quest grouping",
 			category_pantheon$quests_detailed_rewards : "Show detailed quests rewards",
 			category_pantheon$missions_show_completed : "Show completed missions",
 			category_pantheon$gods_show_points_percent : "Show god points percent",
 			category_pantheon$open_many_mysteryboxes : "Open multiple mystery boxes",
+			// Settings - Reports
+			category_reports$style_change : "Improve reports' list layout",
+			category_reports$load_loot_tooltips : "Load report's reward",
+			// Settings - Training
+			category_training$show_discount : "Show training discount",
+			category_training$show_basics_in_bars : "Show basics in bars",
+			category_training$multiple_train : "Enable multiple training",
+			category_training$show_analyze_items_data : "Show analyzed items data in tooltips",
+			category_training$show_points_after_upgrade : "Show stat points after upgrade",
+			// Settings - Expedition
+			// Settings - Guild
+			category_guild$jail_layout : "Improve jail's layout",
+			category_guild$library_layout : "Improve library's layout",
+			category_guild$library_fade_non_scrolls : "Fade items thet are not scrolls on library",
+			category_guild$library_tooltip_data : "Add more data on library's tooltips",
+			category_guild$bank_donate_layout : "Improve bank's donate layout",
+			category_guild$bank_book_layout : "Improve bank's book layout",
+			category_guild$medic_layout : "Improve medic's layout",
+			// Settings - Auction
+			category_auction$items_counters : "Count items and bidded items",
+			category_auction$item_price_analyze : "Analyze items' prices",
+			category_auction$item_level : "Show items level",
+			category_auction$x3_items_per_line : "Change layout to 3 items per line",
+			// Settings - Events
+			// Settings - Sound
+			category_sound$enabled : "Enable sounds",
 
 			// Buttons
 			save : "Save",

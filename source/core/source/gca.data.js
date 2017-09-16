@@ -281,6 +281,8 @@ gca_options.data = {
 		"attacked_timers" : true,
 		// Quest Timer
 		"quest_timer" : true,
+		// Merchants
+		"merchants_timer" : true,
 
 		// Player Image
 		"player_image" : true,
@@ -298,6 +300,9 @@ gca_options.data = {
 
 		// Enable item's shadow
 		"item_shadow" : true,
+
+		// Enable inventory group options
+		"inventory_options_group" : true,
 
 		// Enable pagination layout
 		"pagination_layout" : true,
@@ -403,6 +408,8 @@ gca_options.data = {
 		"found_items" : true
 	},
 
+
+	// Training
 	"training" : {
 		// Show discount
 		"show_discount" : true,
@@ -414,6 +421,12 @@ gca_options.data = {
 		"show_analyze_items_data" : true,
 		// Show points after upgrade
 		"show_points_after_upgrade" : true,
+	},
+
+	// Merchants
+	"merchants" : {
+		// Fade items that you can not afford
+		"fade_unaffordable_items" : true
 	},
 
 	// Expedition Options

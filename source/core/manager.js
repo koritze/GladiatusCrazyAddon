@@ -81,6 +81,16 @@ var manager = {
 					this.section.location();
 					break;
 
+				// Merchants
+				case "inventory":
+					this.section.merchants();
+					break;
+
+				// Market
+				case "market":
+					this.section.markets();
+					break;
+
 			// Settings
 				// Location
 				case "settings":
@@ -232,16 +242,34 @@ var manager = {
 			}
 		},
 
+		// Merchants section
+		merchants : function() {
+			tools.loadScript("source/merchants.js");
+		},
+
+		// Markets
+		markets : function() {
+			tools.loadScript("source/markets.js");
+		},
+
 		// Settings
 		settings : function() {
+			// General settings page
 			if(
 				info.page.queries.submod == null || 
 				info.page.queries.submod == 'savePassword' || 
 				info.page.queries.submod == 'saveEmail' || 
 				info.page.queries.submod == 'sendValidationLink' || 
 				info.page.queries.submod == 'deleteAccSettings'
-			){
+			) {
 				tools.loadScript("source/settings.js");
+			}
+			// Character settings
+			else if(
+				info.page.queries.submod == 'charSettings' ||
+				info.page.queries.submod == 'saveCharacterDesc'
+			) {
+				tools.loadScript("source/settings.character.js");
 			}
 		},
 

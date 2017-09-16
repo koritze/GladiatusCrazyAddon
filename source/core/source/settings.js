@@ -109,7 +109,24 @@ var gca_settings = {
 					// sim : battle simulator
 					// stt : show my stats
 					// onl : online friends
-				"shortcuts_bar_buttons" : 'msg|gmd|gmr|gst|gbn|gwr|gjl|glb|sim|stt|onl',
+				"shortcuts_bar_buttons" : (function(){
+					var scheme = {
+						"type" : "enumerator",
+						"values" : 'msg|gmd|gmr|gst|gbn|gwr|gjl|glb|sim|stt|onl'
+					};
+					var icons = ["message-icon", "cross-icon", "market-icon", "box-icon", "gold-icon", "report-icon", "castle-icon", "notebook-icon", "swords-icon", "people-icon", "online-icon"];
+					scheme.values_dom = [];
+					var tmp;
+					for (var i = 0; i < icons.length; i++) {
+						tmp = document.createElement("span");
+						tmp.className = icons[i];
+						tmp.style.width = "25px";
+						tmp.style.height = "25px";
+						tmp.style.display = "block";
+						scheme.values_dom.push(tmp);
+					}
+					return scheme;
+				})(),
 			
 				// Auction Status
 				"auction_status_bar" : false,
@@ -129,6 +146,8 @@ var gca_settings = {
 				"attacked_timers" : true,
 				// Quest Timer
 				"quest_timer" : true,
+				// Merchants
+				"merchants_timer" : true,
 
 				// Player Image
 				"player_image" : true,
@@ -146,6 +165,9 @@ var gca_settings = {
 
 				// Enable item's shadow
 				"item_shadow" : true,
+
+				// Enable inventory group options
+				"inventory_options_group" : true,
 
 				// Enable pagination layout
 				"pagination_layout" : true,
@@ -264,6 +286,12 @@ var gca_settings = {
 				"show_points_after_upgrade" : true,
 			},
 
+			// Merchants
+			"merchants" : {
+				// Fade items that you can not afford
+				"fade_unaffordable_items" : true
+			},
+
 			// Expedition Options
 			"expedition" : {
 				// Show that each enemy drops
@@ -337,7 +365,12 @@ var gca_settings = {
 								this.scheme[category][label] = this.class.integer(locale, _category, _label);
 								break;
 							case "enumerator" :
-								this.scheme[category][label] = this.class.enumerator(locale, this.scheme[category][label].values, _category, _label);
+								var _values = this.scheme[category][label].values;
+								var _values_locale = this.scheme[category][label].values_locale;
+								if(!_values_locale) _values_locale = false;
+								var _values_dom = this.scheme[category][label].values_dom;
+								if(!_values_dom) _values_dom = false;
+								this.scheme[category][label] = this.class.enumerator(locale, _values, _values_locale, _values_dom, _category, _label);
 								break;
 						}
 					}
@@ -376,6 +409,8 @@ var gca_settings = {
 								this.scheme[category][label] = this.class.enumerator(
 									gca_locale.get("settings", "category_" + category + "$" + label),
 									this.scheme[category][label],
+									false,
+									false,
 									category,
 									label
 								);
@@ -712,7 +747,16 @@ var gca_settings = {
 					select.appendChild(typeItem);
 					var label = document.createElement('label');
 					label.setAttribute('for', id + "__" + scheme.types[i]);
-					label.textContent = scheme.types[i]; // TODO : locale
+					
+					if (scheme.values_locale && scheme.values_locale[i]) {
+						label.appendChild(scheme.values_locale[i]);
+					}
+					else if (scheme.values_dom && scheme.values_dom[i]) {
+						label.appendChild(scheme.values_dom[i]);
+					}
+					else {
+						label.textContent = scheme.types[i];
+					}
 					select.appendChild(label);
 
 					if(scheme.value.indexOf(scheme.types[i]) > -1)
@@ -765,7 +809,7 @@ var gca_settings = {
 					value : gca_options.get(category, label)
 				};
 			},
-			enumerator : function(locale, types, category, label){
+			enumerator : function(locale, types, values_locale, values_dom, category, label){
 				var defValues = types.split('|');
 				var values = [];
 				var saved = gca_options.get(category, label).split('|');
@@ -779,6 +823,8 @@ var gca_settings = {
 					type : "enumerator",
 					locale : locale,
 					types : defValues,
+					values_locale : values_locale,
+					values_dom : values_dom,
 					data : {
 						category : category,
 						label : label
