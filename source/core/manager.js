@@ -109,6 +109,10 @@ var manager = {
 					this.section.guild_medic();
 					break;
 
+				// Market
+				case "guildMarket":
+					this.section.guild_market();
+					break;
 			
 			// Events
 
@@ -259,6 +263,11 @@ var manager = {
 		// Guild Medic section
 		guild_medic : function() {
 			tools.loadScript("source/guild.medic.js");
+		},
+		
+		// Guild Market section
+		guild_market : function() {
+			tools.loadScript("source/guild.market.js");
 		},
 
 		// Events
