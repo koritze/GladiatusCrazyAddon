@@ -14,7 +14,7 @@ var gca_reports = {
 		this.resolveSubmod();
 
 		// Combat reports
-		if(this.submod == 'showCombatReport'){
+		if(this.submod == 'showCombatReport' && document.getElementById('reportHeader')){
 			// Change player image
 			//(gca_options.bool("global","player_image") &&
 			//	// Attach custom image on reports
@@ -24,7 +24,7 @@ var gca_reports = {
 			if (this.combatReport == "reportExpedition") {
 				// Log items found for statistics
 				//(gca_options.bool("reports", "found_items") &&
-				//	this.report_found_items()); // TODO
+					this.report_found_items();//);
 			}
 
 
@@ -108,7 +108,28 @@ var gca_reports = {
 	},
 	// Log items found for statistics
 	report_found_items : function(){
-		// TODO : obviously there is no code here ... deja vu
+		// New report?
+		var reportDate = document.getElementsByTagName('h2')[1].textContent.match(/(\d+).(\d+).(\d+) (\d+).(\d+).(\d+)/i);
+		reportDate = new Date(reportDate[3], reportDate[2] - 1, reportDate[1], reportDate[4], reportDate[5], reportDate[6])
+		var timePassed = (gca_tools.time.server() - reportDate.getTime())/1000;//in sec
+		
+		if( timePassed>5 )
+			return;
+			
+		// Reward exist?
+		var rewards = document.getElementsByClassName('reportReward');
+		var data = gca_data.section.set('data', 'enemy_drops', []);//enemy,item
+		var item, enemy;
+		for(var i=0;i<rewards.length;i++){
+			if(typeof rewards[i].getElementsByTagName('div')[1]!=='undefined'){
+				if(rewards[i].getElementsByTagName('div')[1].className.match(/item-i-18-\d+/)){
+					item = rewards[i].getElementsByTagName('div')[1].className.match(/item-i-(18-\d+)/)[1];
+					enemy = document.getElementById('defenderAvatar11').getElementsByTagName('div')[2].style.backgroundImage.match(/url\("\d+\/img\/npc\/(\d+\/\d+_\d+....")\)/)[1];
+					data.push([enemy,item]);
+				}
+			}
+		}
+		gca_data.section.set('data', 'enemy_drops', data);
 	},
 	
 	// Report style
@@ -188,23 +209,44 @@ var gca_reports = {
 		getLootItem : function(id, t, icon, title){
 			// Get Report
 			jQuery.get(gca_getPage.link({"mod":"reports","submod":"showCombatReport","reportId":id,"t":t}), function(content){
+				var tooltips = [];
+
 				// Match Loot
-				var tooltip = content.match(/<div class="reportReward">[^<]+(?:<br \/>[^<]*|)<div>(<div style="[^"]*" class="item-i-[^>]+>)/im);
-				if(tooltip){
-					// Match loot tooltip
-					tooltip = tooltip[1].match(/data-tooltip="([^"]+)"/im);
+				var match_tooltips = content.match(/<div class="reportReward">[^<]+(?:<br \/>[^<]*|)<div>(<div style="[^"]*" class="item-i-[^>]+>)/img);
+
+				// If found tooltip
+				if(match_tooltips){
+					// For each tooltip
+					for (var i = 0; i < match_tooltips.length; i++) {
+						// Match loot tooltip
+						tooltips.push(match_tooltips[i].match(/data-tooltip="([^"]+)"/im));
+					}
 				}
 				
-				// Error
-				if(!tooltip){
-					// Display
+				// Error - not fould loot
+				if(tooltips.length == 0){
+					// Display error message
 					gca_tools.setTooltip(icon, JSON.stringify([[[title, "white"], [gca_locale.get("general", "error"), "white"]]]));
 				}
 				// Tooltip replace
 				else{
-					tooltip = JSON.parse(tooltip[1].replace(/&quot;/g,'"').replace(/&lt;/g,'<').replace(/&gt;/g,'>'));
-					tooltip[0].unshift([title, "white"]);
-					gca_tools.setTooltip(icon, JSON.stringify(tooltip));
+					// Add title on tooltip
+					var reward_tooltip = [[[title, "white"]]];
+					// For each tooltip
+					var i, j, tooltip;
+					for (i = 0; i < tooltips.length; i++) {
+						// Parse tooltip
+						tooltip = JSON.parse(tooltips[i][1].replace(/&quot;/g,'"').replace(/&lt;/g,'<').replace(/&gt;/g,'>'));
+						// Add space
+						if(i != 0)
+							reward_tooltip[0].push(["&nbsp;", "white"]);
+						// Add tooltip rows
+						for (j = 0; j < tooltip[0].length; j++) {
+							reward_tooltip[0].push(tooltip[0][j]);
+						}
+					}
+					// Show tooltip
+					gca_tools.setTooltip(icon, JSON.stringify(reward_tooltip));
 				}
 			});
 		}

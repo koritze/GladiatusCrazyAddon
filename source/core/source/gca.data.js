@@ -30,6 +30,21 @@ var gca_data = {
 		return false;
 	},
 
+/*
+	// Sync
+	_sync_last : new Date().getTime(),
+	sync : function(){
+		// Get timestamp
+		var time = new Date().getTime();
+		// Check if recently synced
+		if(time - this._sync_last <= 100)
+			return;
+		// Load data
+		gca_data_manager.loadData();
+		this._sync_last = time;
+	}
+*/
+
 	// Section Data
 	section : {
 		// Section data
@@ -58,6 +73,10 @@ var gca_data = {
 				return true;
 			}
 			return false;
+		},
+
+		sync : function(section){
+			gca_data_manager.loadSectionData(section);
 		},
 
 		def : function(section){
@@ -340,7 +359,9 @@ gca_options.data = {
 		// new Achivements layout
 		"achivements_layout" : true,
 		// Costumes layout
-		"costumes_layout" : true
+		"costumes_layout" : true,
+		// Items repair overview
+		"items_repair_overview" : true
 	},
 
 	// Messages Options
@@ -381,6 +402,8 @@ gca_options.data = {
 		"load_more_pages" : true,
 		// Number of pages to load
 		"pages_to_load" : 2,
+		// Show item's price
+		"item_price" : false,
 		// Special category features
 		"special_category_features" : true
 	},
@@ -396,7 +419,9 @@ gca_options.data = {
 		// Show gods points percent
 		"gods_show_points_percent" : true,
 		// Open many mysteryboxes button
-		"open_many_mysteryboxes" : true
+		"open_many_mysteryboxes" : true,
+		// Show mysterybox reward's value in rubies
+		"show_mysterybox_rewards_rubies" : true
 	},
 
 	// Reports
@@ -427,6 +452,12 @@ gca_options.data = {
 	"merchants" : {
 		// Fade items that you can not afford
 		"fade_unaffordable_items" : true
+	},
+
+	// Magus
+	"magus" : {
+		// Fade items that you can not improve
+		"fade_unimprovable_items" : true
 	},
 
 	// Expedition Options
@@ -462,6 +493,10 @@ gca_options.data = {
 		"item_level" : true,
 		// Show 3 items per line
 		"x3_items_per_line" : false,
+		// Enable multi bids
+		"multi_bids" : true,
+		// Show extra stats on items
+		"extra_item_stats" : true
 	},
 
 	"events" : {
@@ -472,8 +507,12 @@ gca_options.data = {
 	},
 
 	"sound" : {
-		// Sounds enabled
-		"enabled" : true
+		// Sound system enabled
+		"enabled" : true,
+		// Sounds muted
+		"muted" : false,
+		// Volume scale
+		"volume" : 0.8
 	},
 
 	// TODO : DEPRECATED below

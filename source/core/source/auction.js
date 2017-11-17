@@ -24,9 +24,25 @@ var gca_auction = {
 				this.itemsLevelShow());
 			(gca_options.bool("auction","x3_items_per_line") && 
 				this.items3PerLine());
+			(gca_options.bool("auction","multi_bids") &&
+				this.multiBids());
+			(gca_options.bool("auction","extra_item_stats") &&
+				this.extraItemStats());
+				
+			this.levelsYouCanSee();
 		}
 	},
-
+	
+	levelsYouCanSee : function(){
+		var playerLvl = parseInt(document.getElementById("header_values_level").textContent);
+		var minLvl = Math.floor(playerLvl* 0.75);
+		var maxLvl = ( playerLvl+14<Math.ceil(1.25*playerLvl+5.75) )? playerLvl+14 : Math.ceil(1.25*playerLvl+5.75);
+		
+		var baseElement = document.getElementsByClassName("buildingDesc")[1].getElementsByTagName("p")[0];
+		baseElement.appendChild(document.createElement("br"));
+		baseElement.appendChild(document.createElement("br"));
+		baseElement.appendChild(document.createTextNode(gca_locale.get("auction", "levels_you_can_see", {min : minLvl, max : maxLvl})));
+	},
 	itemsCounters : function(){
 		// Count items (number of fourms minus the search form)
 		var items = document.forms.length - 1;
@@ -143,6 +159,89 @@ var gca_auction = {
 		}
 	},
 
+	extraItemStats : function() {
+		// Run on food section
+		var e = document.getElementsByName("itemType")[0];
+		if ( e.options[e.selectedIndex].value==7 ){
+			// Translations
+			healTranslation = unescape(document.getElementById("header_values_hp_bar").dataset.tooltip.match(/"([^:]+):"/)[1]);
+			goldTranslation = unescape(document.getElementById("icon_gold").dataset.tooltip.match(/"([^"]+)"/)[1]);
+			
+			// Get items
+			var items = document.getElementById("auction_table").getElementsByClassName("auction_item_div");
+			var items2 = document.getElementById("auction_table").getElementsByClassName("auction_bid_div");
+			// For each item
+			var heal, price, wrapper, indicator, re = / (\d+) /i;
+			for (var i = items.length - 1; i >= 0; i--) {
+				// Get heal
+				heal = parseInt(items[i].getElementsByTagName("div")[1].dataset.tooltip.replace(/ 0 /g,"").match(re)[1]);
+				price = parseInt(gca_tools.strings.removeDots(items2[i].getElementsByTagName('div')[1].textContent).match(/(\d+)/i)[1], 10);
+				// Create heal per gold indicator
+				indicator = document.createElement("div");
+				indicator.className = "";
+				indicator.style="position: absolute; color: #a2dca5; text-align: center; font-size: 10px; overflow: hidden; margin-top: 80px; width: 64px; text-shadow: rgb(0, 0, 0) 0px 0px 2px;";
+				indicator.title = "+"+healTranslation+ " ("+healTranslation+"/"+goldTranslation+")";
+				indicator.textContent = "+" + heal +" ("+ Math.round(heal/price*100)/100 +")"; //heal+"/"+price;
+				// Get wrapper
+				wrapper = items[i];
+				wrapper.insertBefore(indicator, wrapper.firstChild);
+			}
+		}
+	},
+	
+	multiBids : function(){
+		// Get item forms
+		var itemForms = document.getElementById("auction_table").getElementsByTagName("form");
+		for (var i = itemForms.length - 1; i >= 0; i--) {
+			// Each item
+			document.getElementById("auction_table").getElementsByTagName("form")[i].getElementsByTagName("input")[7].setAttribute("type","button");
+			document.getElementById("auction_table").getElementsByTagName("form")[i].getElementsByTagName("input")[7].setAttribute("id", itemForms[i].id.match(/\d+/) );
+			document.getElementById("auction_table").getElementsByTagName("form")[i].getElementsByTagName("input")[7].addEventListener('click',function(){gca_auction.bidItem(this.id);},false);
+		}
+	},
+	
+	bidItem : function(id){
+		data = document.getElementById("auctionForm"+id).getElementsByTagName("input");
+		price = parseInt( data[6].value );
+		gold = parseInt( document.getElementById("sstat_gold_val").textContent.replace(/ /g,'').replace(/\./g,'') );
+		
+		post_data = "auctionid="+ data[0].value +"&qry="+ data[1].value +"&itemType="+ data[2].value +"&itemLevel="+ data[3].value +"&itemQuality="+ data[4].value +"&buyouthd="+ data[5].value +"&bid_amount="+price+"&bid="+ data[7].value ;
+		
+		//Create Spinner
+		spinner = document.createElement("img");
+		spinner.src = "img/ui/spinner.gif";
+		spinner.id = "spinner"+id;
+		spinner.style = "position: absolute;margin-top: -90px;margin-left: 115px;margin-right: 115px;height: 40px;";
+		document.getElementById("auctionForm"+id).appendChild(spinner);
+		
+		// Post to the server
+		jQuery.ajax({
+			type: "POST",
+			url:  document.getElementById("auctionForm"+id).getAttribute('action'),
+			data: post_data,
+			success: function(content){
+				document.getElementById("auctionForm"+id).removeChild(document.getElementById("spinner"+id));
+				if( content.match(/message fail">([^<]+)<\/div/i) ){
+					gca_notifications.error( content.match(/message fail">([^<]+)<\/div/i)[1] );
+				}else if( content.match(/message success">([^<]+)<\/div/i) ){
+					gca_notifications.success( content.match(/message success">([^<]+)<\/div/i)[1] );
+					document.getElementById("sstat_gold_val").textContent = gca_tools.strings.insertDots(gold-price);
+					document.getElementById("auctionForm"+id).getElementsByClassName("auction_bid_div")[0].getElementsByTagName("div")[0].setAttribute('style','color: blue;height: 48px;');
+					document.getElementById("auctionForm"+id).getElementsByClassName("auction_bid_div")[0].getElementsByTagName("div")[1].setAttribute('style','display:none;');
+					document.getElementById("auctionForm"+id).getElementsByClassName("auction_bid_div")[0].getElementsByTagName("div")[0].textContent = content.match(/message success">([^<]+)<\/div/i)[1];
+					document.getElementById("auctionForm"+id).getElementsByTagName("input")[6].value = Math.floor(price*1.05)+1;
+					document.getElementById("auctionForm"+id).getElementsByTagName("input")[6].setAttribute("style","");
+					
+				}else{
+					gca_notifications.error(gca_locale.get("general", "error"));
+				}
+			},
+			error: function(){
+				gca_notifications.error(gca_locale.get("general", "error"));
+			}
+		});
+	},
+	
 	items3PerLine : function() {
 		// Get items
 		var itemsNumber = document.forms.length - 1;
@@ -154,7 +253,9 @@ var gca_auction = {
 
 		// Add style
 		auction.className += "gca-x3columns";
-
+		// Menu over bug - Semi fix
+		document.getElementById("main_inner").getElementsByTagName("article")[0].style = "min-height:379px";
+		
 		// Top image
 		var top = document.createElement("div");
 		top.className = "gca-x3columns-top";

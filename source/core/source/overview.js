@@ -33,7 +33,7 @@ var gca_overview = {
 		(gca_options.bool("overview", "daily_bonus_log") && 
 			this.daily_bonus_log.inject());
 		
-		// Show Block and Avoid Caps
+		// Show Block / Avoid / Critical Hit / Critical Heal Caps
 		(gca_options.bool("overview", "block_avoid_caps") && 
 			this.blockAvoidCaps.calculateCaps());
 
@@ -48,9 +48,14 @@ var gca_overview = {
 		// Mercenaries manager interface
 		(gca_options.bool("overview", "mercenaries_manager") && this.doll > 1 &&
 			this.mercenaries.manager());
+		
 		// Mercenaries show tooltip
 		(gca_options.bool("overview", "mercenary_tooltip_show") && this.doll > 2 &&
 			this.mercenaries.showTooltip());
+			
+		// Repair overview
+		(gca_options.bool("overview", "items_repair_overview") && this.doll == 1 &&
+			this.repair_overview.inject());
 	},
 
 	// Resolve Page
@@ -302,6 +307,14 @@ var gca_overview = {
 			}
 		}
 
+		// Get Special Stats
+			var specialJson = {};
+			specialJson['avoid_critical'] = {item_points : parseInt(JSON.parse(document.getElementById("char_panzer_tt").dataset.tooltip)[0][3][0][1])};
+			specialJson['block'] = {item_points : parseInt(JSON.parse(document.getElementById("char_panzer_tt").dataset.tooltip)[0][7][0][1])};
+			specialJson['critical_hit'] = {item_points : parseInt(JSON.parse(document.getElementById("char_schaden_tt").dataset.tooltip)[0][6][0][1])};
+			specialJson['critical_healing'] = {item_points : parseInt(JSON.parse(document.getElementById("char_healing_tt").dataset.tooltip)[0][4][0][1])};//should be taken from dungeon player
+
+			
 		// Save data if main player
 		if (this.doll == 1) {
 			var json = {};
@@ -315,16 +328,157 @@ var gca_overview = {
 					}
 				};
 			gca_data.section.set("overview", "stats", JSON.stringify(json));
+			gca_data.section.set("overview", "special_stats", JSON.stringify(specialJson));
 		}
 	},
+	
+	// Items Repair Overview
+	repair_overview : {
+		// Inject
+		inject : function(){
+			// Get char element
+			var char = document.getElementById("char");
+			if(!char) return;
 
+			// Create repair slot
+			var slot = document.createElement("div");
+			slot.className = "single_char_item_bg repair_slot_bg";
+			char.appendChild(slot);
+
+			// Create drop area
+			var drop_area = document.createElement("div");
+			drop_area.className = "ui-droppable quest_category_icon_work";
+			drop_area.dataset.containerNumber = 384;
+			drop_area.dataset.contentTypeAccept = 1855;
+			slot.appendChild(drop_area);
+			gca_tools.setTooltip(
+				drop_area,
+				JSON.stringify([
+					[
+						[gca_locale.get("overview","drop_item_see_materials_repair"), "#FF6A00"],
+						[gca_locale.get("overview","workbench_6th_slot_empty"), "#808080"]
+					]
+				])
+			);
+
+			// Save element for layter use
+			this.drop_area = drop_area;
+
+			// Add event
+			var that = this;
+			jQuery(function(){
+				jQuery(drop_area).droppable({
+					drop: function(event, ui) {
+						var id = jQuery(ui.draggable).data('itemId');
+						sendAjax(
+							this,
+							'ajax.php',
+							'mod=forge&submod=getWorkbenchPreview&mode=workbench&slot=5&iid=' + id + '&amount=1',
+							function (data){
+								that.showRepaireTooltip(data, id);
+							},
+							function (elem, msg, delayDuration){
+								//console.log(msg.responseText);
+							}
+						);
+					}
+				});
+			});
+		},
+		showRepaireTooltip : function(data, id){
+			// Parse data string
+			data = JSON.parse(data);
+			// Tooltip variable
+			var tooltip;
+			
+			// If data exist
+			if(typeof data.slots[5].item !== 'undefined' || typeof data.slots[5].formula.needed !== 'undefined' && data.slots[5].item.data.itemId == id){
+				// Get materials
+				var materials = data.slots[5].formula.needed;
+
+				// Get item data
+				var item = {
+					name : data.slots[5].item.name,
+					text_css: data.slots[5].item.data.tooltip[0][0][1],
+					color: data.slots[5].item.data.tooltip[0][0][1].match(/\s*([^;]+);/)[1]
+				};
+
+				// Create tooltip with the materials
+				tooltip = [[]];
+				// Add item name
+				tooltip[0].push([item.name, item.text_css]);
+
+				// For each material
+				for (var key in materials) {
+					if (materials.hasOwnProperty(key)) {
+						// If needed
+						if(materials[key].amount > 0){
+							tooltip[0].push([
+								'<div class="item-i-18-' + parseInt(key.match(/18(\d+)/)[1]) + '" style="display:inline-block;transform: scale(0.8);margin:0 -5px -10px 0px;"></div> &times; ' + materials[key].amount + ' (' + this.checkForUtf8Bug(materials[key].name) + ')',
+								"#cccccc"
+							]);
+						}
+					}
+				}
+				// Show repair cost
+				tooltip[0].push([
+					'<span style="float:right;">' + this.getRepairCost() + ' <div class="icon_gold" style="display: inline-block;"></div></span>',
+					"#cccccc"
+				]);
+				this.drop_area.style.filter = "drop-shadow(0px 0px 2px " + item.color + ")";
+			}
+
+			// Error
+			else{
+				tooltip = [[[gca_locale.get("general","error"), "#ff0000"]]];
+				this.drop_area.style.filter = "none";
+			}
+
+			// Set tooltip
+			gca_tools.setTooltip(this.drop_area, JSON.stringify(tooltip));
+		},
+
+		// Calculate repaire costs
+		getRepairCost : function() {
+			return gca_tools.strings.insertDots(parseInt(document.getElementById('header_values_level').textContent) * 10 + 10, 10);
+		},
+
+		// Check and fix if utf8 bug
+		checkForUtf8Bug : function(text){
+			// Split on space
+			var array = text.split(" ");
+			for (var i = array.length - 1; i >= 0; i--) {
+				array[i] = this.checkForUtf8BugWord(array[i]);
+			}
+			return array.join(" ");
+		},
+		checkForUtf8BugWord : function(text){
+			// If not multiple of 5
+			if (text.length % 5 != 0)
+				return text;
+
+			// Split on u
+			var utf8 = text.split("u");
+
+			// If not correct number of u
+			if (utf8.length - 1 != text.length / 5)
+				return text;
+
+			// Join with \\u
+			utf8 = utf8.join("%u");
+			return unescape(utf8);
+		}
+	},
+	
 	// Food Life gain predict on mouse over
 	blockAvoidCaps : {
 		// Caps variables
 		caps : [
 			0, // Avoid Cap
 			0, // Block Cap
-			false // Calculated
+			false, // Calculated
+			0, // Critical hit Cap
+			0, // Critical heal Cap
 		],
 
 		// Calculate Block and Avoid Caps
@@ -334,6 +488,8 @@ var gca_overview = {
 				var player_level = parseInt(document.getElementById("header_values_level").textContent);
 				this.caps[0] = Math.floor(24.5*4*(player_level-8)/52)+1;//Avoid Cap formula
 				this.caps[1] = Math.floor(49.5*6*(player_level-8)/52)+1;//Block Cap formula
+				this.caps[3] = Math.floor(49.5*5*(player_level-8)/52)+1;//Critical hit Cap formula
+				this.caps[4] = Math.floor(89.5*7*(player_level-8)/52)+1;//Critical heal Cap formula
 				this.caps[2] = true;
 				
 				// Attach event on request response
@@ -348,9 +504,8 @@ var gca_overview = {
 				});
 			}
 			
-			// Show caps
+			// Show Avoid/Block caps
 				var parseDataset = JSON.parse(document.getElementById("char_panzer_tt").dataset.tooltip);
-				
 				// Loop through the tooltip to find the proper rows
 				var i = 1;
 				var capNo = 0;
@@ -367,6 +522,43 @@ var gca_overview = {
 				}
 				// Apply the changed tooplit
 				gca_tools.setTooltip(document.getElementById("char_panzer_tt"),JSON.stringify(parseDataset));
+			
+			// Show Critical hit caps
+				var parseDataset = JSON.parse(document.getElementById("char_schaden_tt").dataset.tooltip);
+				// Loop through the tooltip to find the proper rows
+				var i = 1;
+				capNo++;
+				while (parseDataset[0][i] && capNo<4){
+					// If the color is golden
+					if( parseDataset[0][i][1][1] == "#BA9700" ){
+						// Change color
+						parseDataset[0][i][1][1]=(parseDataset[0][i][0][1]>=this.caps[capNo])?"#00B712":"#ff0000";
+						// Apply the /Cap
+						parseDataset[0][i][0][1] = parseDataset[0][i][0][1] + "/" + this.caps[capNo];
+						capNo++;
+					}
+					i++;
+				}
+				// Apply the changed tooplit
+				gca_tools.setTooltip(document.getElementById("char_schaden_tt"),JSON.stringify(parseDataset));
+			
+			// Show Critical heal caps
+				var parseDataset = JSON.parse(document.getElementById("char_healing_tt").dataset.tooltip);
+				// Loop through the tooltip to find the proper rows
+				var i = 1;
+				while (parseDataset[0][i] && capNo<5){
+					// If the color is golden
+					if( parseDataset[0][i][1][1] == "#BA9700" ){
+						// Change color
+						parseDataset[0][i][1][1]=(parseDataset[0][i][0][1]>=this.caps[capNo])?"#00B712":"#ff0000";
+						// Apply the /Cap
+						parseDataset[0][i][0][1] = parseDataset[0][i][0][1] + "/" + this.caps[capNo];
+						capNo++;
+					}
+					i++;
+				}
+				// Apply the changed tooplit
+				gca_tools.setTooltip(document.getElementById("char_healing_tt"),JSON.stringify(parseDataset));
 		}
 	},
 	
@@ -835,9 +1027,8 @@ var gca_overview = {
 			if(collected < 7){
 				var nextBonusDate = new Date(gca_tools.time.server());
 				nextBonusDate = new Date(nextBonusDate.getFullYear(), nextBonusDate.getMonth(), nextBonusDate.getDate()).getTime() + 24*60*60*1000 - 1;
-				var nextDay = new Date(nextBonusDate).getDay();
-
-				if(nextDay != 0){
+				var nextDay = 6-Math.floor((bonusEndDate-gca_tools.time.server())/864e5)*864e5;
+				if(nextDay != 6){
 					this.nextBonusTimer(boxes[nextDay], nextBonusDate - gca_tools.time.server());
 				}
 			}
@@ -1224,7 +1415,7 @@ var gca_overview = {
 
 			// Create item icon
 			var wrapper = document.createElement("div");
-			wrapper.className = "mercenary_bg";
+			wrapper.className = "single_char_item_bg mercenary_slot_bg";
 			var item = document.createElement("div");
 			item.className = "item-i-15-5";
 			wrapper.appendChild(item);

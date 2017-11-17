@@ -16,22 +16,6 @@ gca_languages["en"] = {
 	name : "English (United States)",
 	// Translators (authors of this script)
 	translators : ["DarkThanos", "GreatApo"],
-	
-	// Language options
-	options : {
-		// Language formats
-		formats : {
-			// Short date format
-			shortDate : "d/MM/yyyy",
-			// Long date format
-			longDate : "dddd, d, MMMM yyyy",
-			// Number Separators
-			number : {
-				thousands : ",",
-				decimal : "."
-			}
-		}
-	},
 
 	// Translations object
 	locale : {
@@ -105,8 +89,8 @@ gca_languages["en"] = {
 			quest_new : "New",
 
 			// Pray icon
-			pray_start : "Press to stop praying",
-			pray_stop : "Press to start praying",
+			pray_start : "Press to start praying",
+			pray_stop : "Press to stop praying",
 			heal : "heal",
 
 			// Notifications
@@ -114,16 +98,20 @@ gca_languages["en"] = {
 
 			// Gold - Exp data
 			gold_exp_data : "Gold and Experience Data",
-			gold_exp_data_today : "Today's values",
-			gold_exp_data_week : "7 days values",
+			gold_exp_data_today : "Last 24 hours",
+			gold_exp_data_week : "Last 7 days",
 			gold_exp_data_avg_day : "Average values per day",
 			gold_exp_data_to_level_up : "Days left to level up",
+			gold_exp_data_package_tax : "Weekly gold-to-package tax",
 		},
 
 		// Overview
 		overview : {
 			// Stats Difference
 			stats_difference : "Difference",
+			// Drop items to see materials to repair feature
+			drop_item_see_materials_repair : "Drop an item to see the materials needed to repair it",
+			workbench_6th_slot_empty : "Workbench\'s 6th slot needs to be empty",
 		},
 
 		// Pantheon section
@@ -166,6 +154,8 @@ gca_languages["en"] = {
 			hide_your_gold_here : "Hide your gold here",
 			// Price of item equals to its value
 			price_value_function : "Price = Value + {{number}}",
+			// Levels you can see
+			levels_you_can_see : "You can see items from level {{min}} to level {{max}}.",
 		},
 
 		// Settings
@@ -185,6 +175,7 @@ gca_languages["en"] = {
 			category_reports : "Reports",
 			category_training : "Training",
 			category_merchants : "Merchants",
+			category_magus : "Magus",
 			category_expedition : "Expedition",
 			category_guild : "Guild",
 			category_auction : "Auction",
@@ -211,7 +202,7 @@ gca_languages["en"] = {
 			category_global$player_image : "Enable players' images",
 			category_global$cooldown_sound_notifications : "Enable cooldowns sounds notifications (expedition, dungeon, arena)",
 			category_global$notify_new_guild_application : "Notify me when there is a new guild application",
-			category_global$notify_new_guild_application_interval : "Check for applications every (seconds)",
+			category_global$notify_new_guild_application_interval : "Check for applications every (minutes)",
 			category_global$x_scroll : "Enable gladiatus' horizontal scroll",
 			category_global$item_shadow : "Enable items shadows",
 			category_global$inventory_options_group : "Group inventory options",
@@ -231,6 +222,7 @@ gca_languages["en"] = {
 			category_overview$more_statistics : "Show more stats on statistics tab",
 			category_overview$achivements_layout : "Enhance achivements layout",
 			category_overview$costumes_layout : "Enhance costumes layout",
+			category_overview$items_repair_overview : "Drop items in the field to see the materials needed to repair them",
 			// Settings - Messages
 			category_messages$messages_layout : "Improve messages layout",
 			category_messages$show_unread : "Highlight unread messages",
@@ -249,6 +241,7 @@ gca_languages["en"] = {
 			category_packages$items_layout : "Improve items layout",
 			category_packages$load_more_pages : "Load more pages",
 			category_packages$pages_to_load : "Number of pages to load",
+			category_packages$item_price : "Show items' price",
 			category_packages$special_category_features : "Enable special category features",
 			// Settings - Pantheon
 			category_pantheon$quests_reorder : "Enable quest grouping",
@@ -256,6 +249,7 @@ gca_languages["en"] = {
 			category_pantheon$missions_show_completed : "Show completed missions",
 			category_pantheon$gods_show_points_percent : "Show god points percent",
 			category_pantheon$open_many_mysteryboxes : "Open multiple mystery boxes",
+			category_pantheon$show_mysterybox_rewards_rubies : " Show mysterybox reward's value in rubies",
 			// Settings - Reports
 			category_reports$style_change : "Improve reports' list layout",
 			category_reports$load_loot_tooltips : "Load report's reward",
@@ -265,6 +259,10 @@ gca_languages["en"] = {
 			category_training$multiple_train : "Enable multiple training",
 			category_training$show_analyze_items_data : "Show analyzed items data in tooltips",
 			category_training$show_points_after_upgrade : "Show stat points after upgrade",
+			// Settings - Merchants
+			category_merchants$fade_unaffordable_items : "Fade items that you can not afford",
+			// Settings - Magus
+			category_magus$fade_unimprovable_items : "Fade items that you can not improve",
 			// Settings - Expedition
 			// Settings - Guild
 			category_guild$jail_layout : "Improve jail's layout",
@@ -279,9 +277,14 @@ gca_languages["en"] = {
 			category_auction$item_price_analyze : "Analyze items' prices",
 			category_auction$item_level : "Show items level",
 			category_auction$x3_items_per_line : "Change layout to 3 items per line",
+			category_auction$multi_bids : "Bid many items without page refresh",
+			category_auction$extra_item_stats : "Show extra stats on item images",
+				
 			// Settings - Events
 			// Settings - Sound
-			category_sound$enabled : "Enable sounds",
+			category_sound$enabled : "Enable sound system",
+			category_sound$muted : "Mute/Unmute sounds",
+			category_sound$volume : "Sounds volume",
 
 			// Buttons
 			save : "Save",
@@ -290,6 +293,24 @@ gca_languages["en"] = {
 			notification_reload : "Reload the page for the changes to take effect"
 		}
 	},
+
+	// Language options (not yet in use)
+	/*
+	options : {
+		// Language formats
+		formats : {
+			// Short date format
+			shortDate : "d/MM/yyyy",
+			// Long date format
+			longDate : "dddd, d, MMMM yyyy",
+			// Number Separators
+			number : {
+				thousands : ",",
+				decimal : "."
+			}
+		}
+	},
+	*/
 
 	// Old deprecated struct
 	locale_deprecated : {
@@ -408,9 +429,6 @@ gca_languages["en"] = {
 			// General
 				// Full life points recovery in (x minutes)
 				full_life_recover_in : "Full life recover in",
-				// Drop items to see materials to repair feature
-				drop_item_see_materials_repair : "Drop an item to see the materials needed to repair it",
-				workbench_6th_slot_empty : "Workbench\'s 6th slot needs to be empty",
 			// Manage Mercenaries Box
 				// Manage mercenaries title
 				manage_mercenaries : "Manage Mercenaries",

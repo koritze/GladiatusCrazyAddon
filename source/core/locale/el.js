@@ -6,13 +6,33 @@
  * Translator: DarkThanos, GreatApo
  */
 
+// Languages Object
 var gca_languages = gca_languages || {};
+
+// Set Language
 gca_languages["gr"] = {
+
+	// Language name
 	name : "Ελληνικά",
-	
-	// Traslations
-	locale :{
-		// Sections
+	// Translators (authors of this script)
+	translators : ["DarkThanos", "GreatApo"],
+
+	// Translations object
+	locale : {
+		// Addon info
+		info : {
+			description : "Το πιο τρελό add-on για το gladiatus που φτιάχτηκε ποτέ!"
+		},
+		
+		
+		// Overview
+		overview : {
+			// Stats Difference
+			stats_difference : "Διαφορά",
+			// Drop items to see materials to repair feature
+			drop_item_see_materials_repair : "Ρίξτε ένα αντικείμενο για να δείτε τα υλικά που χρειάζεται για να επισκευαστεί",
+			workbench_6th_slot_empty : "Η 6η θέση στον Πάγκο Εργασίας πρέπει να είναι ελεύθερη",
+		}	
 	},
 
 	// Old deprecated struct
@@ -130,9 +150,6 @@ gca_languages["gr"] = {
 			// General
 				// Full life points recovery in (x minutes)
 				full_life_recover_in : "Ολική αναγέννηση της ζωής σε",
-				// Drop items to see materials to repair feature
-				drop_item_see_materials_repair : "Ρίξτε ένα αντικείμενο για να δείτε τα υλικά που χρειάζεται για να επισκευαστεί",
-				workbench_6th_slot_empty : "Η 6η θέση στον Πάγκο Εργασίας πρέπει να είναι ελεύθερη",
 			// Manage Mercenaries Box
 				// Manage mercenaries title
 				manage_mercenaries : "Διαχείριση Μισθοφόρων",
@@ -407,5 +424,3 @@ gca_languages["gr"] = {
 				OPTIONS_FIXES_RTL_TOOLTIP_FIX : "Διόρθωση προβλήματος των κινούμενων tooltip (για τους δεξιά προς τα αριστερά server, πχ. Αραβικός)"
 	}
 }
-
-gca_locale.active = "gr";

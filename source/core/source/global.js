@@ -95,7 +95,7 @@ var gca_global = {
 			this.display.event.craps_timer.inject());
 
 		// Event Server Quest
-		(!this.isTraveling && this.isEvent.serverQuest && this.isEvent.bar && gca_options.bool("events","server_quest_timer") &&
+		(!this.isTraveling && (this.isEvent.serverQuest || this.isEvent.locationQuest) && this.isEvent.bar && gca_options.bool("events","server_quest_timer") &&
 			this.display.event.server_quest_timer.inject());
 
 		// Remember merchants' and inventory tabs
@@ -120,13 +120,52 @@ var gca_global = {
 		(gca_options.bool("global","browser_notifications") &&
 			gca_notifications._browser.init());
 		
-		// Gold/Exp data TODO
+		// Gold/Exp data
 		(gca_options.bool("global","gold_exp_data") &&
 			this.background.gold_exp_data.inject());
 
 		// Sound buttons
 		(gca_options.bool("sound","enabled") &&
 			this.sound.bar());
+			
+		// Forge timer
+		(!this.isTraveling && 
+			this.display.forge_timer());
+	},
+	
+	scripts : {
+		chartScript : {
+			load : 0, // 2 = ready
+			create : function(renderChartFunction){
+				var that=this;
+				if(that.load<2){
+					var script = document.createElement('script');
+					script.src = gca_resources.folder + "libraries/Chart.min.js";
+					script.addEventListener('load', function(){
+						that.load++;
+						// If all scripts loaded
+						if(that.load >= 2){
+							// Render chart
+							renderChartFunction();
+						}
+					}, false);
+					document.getElementsByTagName('head')[0].appendChild(script);
+					script = document.createElement('script');
+					script.src = gca_resources.folder + "libraries/moment.min.js";
+					script.addEventListener('load', function(){
+						that.load++;
+						// If all scripts loaded
+						if(that.load >= 2){
+							// Render chart
+							renderChartFunction();
+						}
+					}, false);
+					document.getElementsByTagName('head')[0].appendChild(script);
+				}else{
+					renderChartFunction();
+				}
+			}
+		}
 	},
 
 	// Game Modes Check
@@ -148,6 +187,7 @@ var gca_global = {
 		this.isEvent = {
 			craps : false,
 			serverQuest : false,
+			locationQuest : false,
 			bar : false
 		};
 
@@ -160,9 +200,13 @@ var gca_global = {
 			}
 			// Get first's submenu links
 			links = document.getElementById('submenu2').getElementsByTagName('a');
-			// Check for "Server Bosses" event
-			if(links[links.length-1].className.match('glow') && links[links.length-1].href.match('submod=serverQuest')){
-				this.isEvent.serverQuest = true;
+			if(links[links.length-1].className.match('glow')){
+				// Check for "Server Bosses" event
+				if(links[links.length-1].href.match('submod=serverQuest')){
+					this.isEvent.serverQuest = true;
+				}else if(links[links.length-1].href.match(/loc=(\w+)&/)){
+					this.isEvent.locationQuest = links[links.length-1].href.match(/loc=(\w+)&/)[1];
+				}
 			}
 		}
 
@@ -390,13 +434,17 @@ var gca_global = {
 					div = document.getElementById('header_values_hp_points');
 					div.textContent = "";
 					var text = document.createElement('span');
-					text.textContent = hp;
+					text.textContent = gca_tools.strings.insertDots(hp);
 					div.appendChild(text);
-					text = document.createTextNode(" / " + maxhp);
+					text = document.createTextNode(" / " + gca_tools.strings.insertDots(maxhp));
 					div.appendChild(text);
 				}
+				// Get HP bar
+				div = document.getElementById('header_values_hp_bar_fill');
+				// Stop HP bar's animation
+				jQuery(div).stop();
 				// Update HP bar
-				document.getElementById('header_values_hp_bar_fill').style.width = Math.round((hp*100)/maxhp) + "%";
+				div.style.width = Math.round((hp*100)/maxhp) + "%";
 				// Update Tooltip
 				div = document.getElementById('header_values_hp_bar');
 				if(div){
@@ -710,6 +758,12 @@ var gca_global = {
 					table_wrapper.className = "hover_box";
 					let statsHtmlTable = document.createElement("table");
 					statsHtmlTable.id = "gca_player_stats_table";
+					
+					// Add Canvas
+					var canvas = document.createElement('canvas');
+					canvas.id = "stats_canvas";
+					canvas.style = "background-color:rgba(255,255,255,0.8);border-radius:5%";
+					table_wrapper.appendChild(canvas);
 
 					let show_stats = document.createElement('div');
 					show_stats.className = "instant";
@@ -876,7 +930,7 @@ var gca_global = {
 					// Get online guild memebers
 					jQuery.get(gca_getPage.link({"mod":"guild","submod":"memberList","order":"o"}), function(content){
 						// Match All active players
-						var online_players = content.match(/<tr>\s*<td>\s*<a href="index\.php\?mod=player&p=(\d+)&sh=[^"]+">([^<]+)<\/a>\s*<\/td>\s*<td>([^<]+)<\/td>\s*<td>(\d+)<\/td>\s*<td align="right">\s*[^<]*(<span[^>]*>[^<]*<\/span>|)\s*<\/td>\s*<td align="right"><span style="color: (green|#406000|#804000);[^"]*" title="on">([^<]*)</mg);
+						var online_players = content.match(/<tr>\s*<td>\s*<a href="index\.php\?mod=player&p=(\d+)&sh=[^"]+">([^<]+)<\/a>\s*<\/td>\s*<td>([^<]+)<\/td>\s*<td>(\d+)<\/td>\s*<td align="right">\s*[^<]*(<span[^>]*>[^<]*<\/span>|)\s*<\/td>\s*<td align="right"><span style="color: (green|#406000|#804000);[^"]*" title="[^"]*">([^<]*)</mg);
 						
 						// Check if you are on a guild
 						if(!online_players && content.match(/<form\s+action="index.php\?mod=guild&submod=create&sh=/i)){
@@ -890,7 +944,7 @@ var gca_global = {
 						else{
 							let guild_players_data = content.match(/<tr>\s*<td>\s*<a href="index\.php\?mod=player&p=(\d+)&sh=[^"]+">([^<]+)<\/a>\s*<\/td>\s*<td>([^<]+)<\/td>\s*<td>(\d+)<\/td>\s*<td align="right">\s*[^<]*(<span[^>]*>[^<]*<\/span>|)\s*<\/td>\s*<td align="right"><span style="color:[^>]+>([^<]*)</mg);
 							let guild_players = [];
-
+						
 							// For each player
 							for (let i = 0; i < guild_players_data.length; i++){
 								// Match player's info
@@ -926,7 +980,7 @@ var gca_global = {
 						// For each player
 						for (let i = 0; i < online_players.length; i++){
 							// Match player's info
-							let player = online_players[i].match(/<tr>\s*<td>\s*<a href="index\.php\?mod=player&p=(\d+)&sh=[^"]+">([^<]+)<\/a>\s*<\/td>\s*<td>([^<]+)<\/td>\s*<td>(\d+)<\/td>\s*<td align="right">\s*[^<]*(<span[^>]*>[^<]*<\/span>|)\s*<\/td>\s*<td align="right"><span style="color: (green|#406000|#804000);[^"]*" title="on">([^<]*)</mi);
+							let player = online_players[i].match(/<tr>\s*<td>\s*<a href="index\.php\?mod=player&p=(\d+)&sh=[^"]+">([^<]+)<\/a>\s*<\/td>\s*<td>([^<]+)<\/td>\s*<td>(\d+)<\/td>\s*<td align="right">\s*[^<]*(<span[^>]*>[^<]*<\/span>|)\s*<\/td>\s*<td align="right"><span style="color: (green|#406000|#804000);[^"]*" title="[^"]*">([^<]*)</mi);
 							let player_info = {
 								id : player[1],
 								name : player[2],
@@ -1192,6 +1246,39 @@ var gca_global = {
 							tr.appendChild(td);
 							statsHtmlTable.appendChild(tr);
 						}
+						
+						var chartFunction = function(){
+							new Chart(document.getElementById("stats_canvas"), {
+								type: 'radar',
+								data: {
+								  labels: [stats[attributes[0]][0], stats[attributes[1]][0], stats[attributes[2]][0], stats[attributes[3]][0], stats[attributes[4]][0], stats[attributes[5]][0]],
+								  datasets: [
+									{
+									  label: "Stats",
+									  fill: true,
+									  backgroundColor: "rgba(179,181,198,0.2)",
+									  borderColor: "rgba(179,181,198,1)",
+									  pointBorderColor: "#fff",
+									  pointBackgroundColor: "rgba(179,181,198,1)",
+									  pointBorderColor: "#fff",
+									  data: [stats[attributes[0]][1], stats[attributes[1]][1], stats[attributes[2]][1], stats[attributes[3]][1], stats[attributes[4]][1], stats[attributes[5]][1]]
+									}
+								  ]
+								},
+								options: {
+									scale: {
+										pointLabels: {
+											fontSize: 8
+										}
+									},
+									legend: {
+										display: false
+									}
+								}
+							});
+						}
+						
+						gca_global.scripts.chartScript.create(chartFunction);
 					}
 					// Stats not saved
 					else{
@@ -1289,8 +1376,8 @@ var gca_global = {
 							stats.constitutionName = statNamesA[5].match(/>([^<]+)</i)[1];
 							stats.charismaName = statNamesA[6].match(/>([^<]+)</i)[1];
 							stats.intelligenceName = statNamesA[7].match(/>([^<]+)</i)[1];
-							stats.armourName = statNamesB[0].match(/>([^<]+)</i)[1];
-							stats.damageName = statNamesB[1].match(/>([^<]+)</i)[1];
+							stats.armourName = statNamesB[1].match(/>([^<]+)</i)[1];
+							stats.damageName = statNamesB[2].match(/>([^<]+)</i)[1];
 
 							stats.strength = stats.strength[1];
 							stats.dexterity = stats.dexterity[1];
@@ -1557,6 +1644,8 @@ var gca_global = {
 				// Pantheon Link
 				this.info.pantheon = main_links[1];
 				this.info.pantheon_active = (this.info.pantheon.className.match('active')) ? '_active' : '';
+				
+				// Guild Link
 				this.info.guild = main_links[2];
 				this.info.guild_active = (this.info.guild.className.match('active')) ? '_active' : '';
 
@@ -2268,7 +2357,7 @@ var gca_global = {
 			server_quest_timer : {
 				inject : function(){
 					// if Craps wait for update event
-					if(gca_section.mod == 'location' && gca_section.submod == 'serverQuest'){
+					if(gca_section.mod == 'location' && (gca_section.submod == 'serverQuest' || isNaN(gca_getPage.parameter('loc')))){
 						gca_tools.event.addListener("server_quest-info-update", function(){
 							gca_global.display.event.server_quest_timer.display();
 						});
@@ -2292,7 +2381,7 @@ var gca_global = {
 					if(!banner) return;
 					// Check banner link
 					var banner_link = gca_getPage.parameters(banner.href);
-					if(banner_link.mod != "location" || banner_link.submod != "serverQuest"){
+					if(banner_link.mod != "location" || (banner_link.submod != "serverQuest" && !isNaN(banner_link.loc))){
 						return;
 					}
 
@@ -2356,16 +2445,18 @@ var gca_global = {
 				// Count Down
 				countdown_interval : null,
 				countdown : function(){
+					
 					// If ready
 					if(this.timer < 0){
-						this.serverQuestPointsElement.textContent = "";
+						if(this.points != 'N/A'){
+							this.serverQuestPointsElement.textContent = this.points;
+						}else{
+							this.serverQuestPointsElement.textContent = "";
+						}
 						this.serverQuestTimeElement.textContent = "";
 						// Clear timer
 						clearInterval(this.countdown_interval);
 						return;
-					}
-					if(this.points != 'N/A'){
-						this.serverQuestPointsElement.textContent = this.points;
 					}
 
 					// Convert milliseconds to Minutes:Seconds
@@ -2398,6 +2489,36 @@ var gca_global = {
 			}
 		},
 
+		forge_timer : function(){
+			var smeltTimes = gca_data.section.get("timers", "smelt_times", {data:[]});
+			
+			if(smeltTimes.data.length>0){
+				// Create indicator
+				var forge = gca_global.display.advanced_main_menu.info.sublink.forge.link;
+				var forge_active = (forge.className.match('active')) ? '_active' : '';
+				
+				var type = 'red';
+				// PC time NOT SERVER time (for some unknown reason :P gladiatus gives this time in code)
+				var current = new Date(); current = current.getTime();
+				var tooltip = '[[[["'+smeltTimes.translation[0]+'","'+smeltTimes.translation[1]+'"],["#FF6A00; text-shadow: 0 0 2px #000, 0 0 2px #FF6A00","#FF6A00; text-shadow: 0 0 2px #000, 0 0 2px #FF6A00"]]';
+				
+				for(i=0;i<smeltTimes.data.length;i++){
+					if(smeltTimes.data[i][0]*1000<=current){
+						type = 'green';
+						gca_notifications.success(smeltTimes.translation[0]+': '+smeltTimes.data[i][1]+'\n'+smeltTimes.translation[2]);
+						tooltip += ',[["'+smeltTimes.data[i][1]+'","'+smeltTimes.translation[2]+'"],["#DDD","#00ff00"]]';
+					}else{
+						tooltip += ',[["'+smeltTimes.data[i][1]+'","'+gca_tools.time.msToString(smeltTimes.data[i][0]*1000-current)+'"],["#DDD","#DDD"]]';
+					}
+				}
+				tooltip += ']]';
+				
+				// Add indicator
+				this.icon = gca_global.display.advanced_main_menu.convertMenu.addSideIcon(forge, forge_active, "indicator-" + type);
+				gca_tools.setTooltip(this.icon, tooltip);
+			}
+		},
+		
 		merchants_timer : {
 			preload : function(){
 				// Resolve menu
@@ -2526,10 +2647,19 @@ var gca_global = {
 					that.currentBag(tab);
 				});
 
-				// Wait first bag
-				gca_tools.event.bag.waitBag(function(){
+				// If bag not already loaded
+				if (document.getElementById("inv").className.match("unavailable")) {
+					// Wait first bag
+					gca_tools.event.bag.waitBag(function(){
+						that.currentBag(document.getElementById("inventory_nav").getElementsByClassName("current")[0]);
+					});
+				}
+				// Else id already loaded
+				// (you can test it with ctrl+F5)
+				else {
+					// Add shadows
 					that.currentBag(document.getElementById("inventory_nav").getElementsByClassName("current")[0]);
-				});
+				}
 			},
 
 			// Inject the current bag
@@ -2601,6 +2731,11 @@ var gca_global = {
 				item = document.getElementById("show-item-info");
 				item.style.display = "block";
 				this.box.appendChild(item);
+
+				// Fix bug click
+				var buy = wrapper.getElementsByClassName("bag_buy_extend")[0].getElementsByTagName("a")[0];
+				buy.removeAttribute("href");
+				buy.style.cursor = "pointer";
 			},
 			// Show/Hide options
 			hidden : true,
@@ -2695,7 +2830,7 @@ var gca_global = {
 				// Get bonus
 				var bonus_box = wrapper.getElementsByClassName('loginbonus_bonus');
 				var bonus = [];
-				var daysleft = -1;
+				var daysleft = 0;
 
 				// For each reward
 				for (var i = bonus_box.length - 1; i >= 0; i--) {
@@ -2709,6 +2844,7 @@ var gca_global = {
 					var icon = bonus_box[i].getElementsByClassName('loginbonus_icon')[0];
 					if(icon.dataset.tooltip){
 						bonus_item.tooltip = icon.dataset.tooltip;
+						daysleft = 0;
 					}
 					// Not collected
 					else{
@@ -2718,15 +2854,11 @@ var gca_global = {
 					// Store data
 					bonus.unshift(bonus_item);
 				}
-
-				// Fix dates
-				if(daysleft < 0)
-					daysleft = 0;
+				daysleft++;
 
 				var day = 24*60*60*1000;
-				var bonusEndDate = new Date(gca_tools.time.server() + daysleft * day);
-				bonusEndDate = new Date(bonusEndDate.getFullYear(), bonusEndDate.getMonth(), bonusEndDate.getDate()).getTime() + day - 1;
-				
+				var bonusEndDate = new Date(Math.floor(gca_tools.time.server()/day)*day + daysleft * day).getTime();
+
 				// Save expiration timestamp
 				gca_data.section.set('overview', 'daily_bonus_ends', bonusEndDate);
 				// Save data
@@ -2965,8 +3097,8 @@ var gca_global = {
 				var data = gca_data.section.get("data", "gold_exp_data", false);
 				
 				// Collect data every 10min = (600k ms)
-				if (data && gca_tools.time.server() - data[data.length - 1][2] < 6e5){
-					// Not yet 10 mins
+				if (data && gca_tools.time.server() - data[data.length - 1][2] < 6e5*3){
+					// Not yet 30 mins
 					return;
 				}
 				
@@ -2977,15 +3109,6 @@ var gca_global = {
 
 					// Get saved data (again just to be sure)
 					var data = gca_data.section.get("data", "gold_exp_data", []);
-					
-					
-					/* Ο ΘΑΝΟΣ ΓΡΑΦΕΙ GTP ΚΩΔΙΚΑ
-					// Collect data every 10min = (600k ms)
-					if (!serverDate || !data.length || serverDate - data[data.length - 1][2] < 6e5){
-						// Not yet 10 mins
-						return;
-					}
-					*/
 
 					// Get gold
 					var gold = content.match(/([\d\.]+) \/ 50\.000\.000/i);
@@ -2993,6 +3116,7 @@ var gca_global = {
 					var exp = document.getElementById('header_values_xp_bar').dataset.tooltip.match(/"(\d+) \\\/ \d+"/i);
 					// If gold or exp not found
 					if(gold == null || exp == null){
+						console.log("GCA: Could not get gold or exp data.");
 						// Exit
 						return;
 					}
@@ -3070,26 +3194,58 @@ var gca_global = {
 				dialog.smallHead(true);
 				dialog.title.textContent = gca_locale.get("global", "gold_exp_data");
 				
-				// Add description
-				var div = document.createElement('div');
-				div.id = "today_values";
-				div.textContent = gca_locale.get("global", "gold_exp_data_today") + ":";
-				dialog.body.appendChild(div);
-				
-				div = document.createElement('div');
-				div.id = "days7_values";
-				div.textContent = gca_locale.get("global", "gold_exp_data_week") + ":";
-				dialog.body.appendChild(div);
-				
-				div = document.createElement('div');
-				div.id = "average_per_day";
-				div.textContent = gca_locale.get("global", "gold_exp_data_avg_day") + ":";
-				dialog.body.appendChild(div);
-				
-				div = document.createElement('div');
-				div.id = "days_left_to_level_up";
-				div.textContent = gca_locale.get("global", "gold_exp_data_to_level_up") + ":";
-				dialog.body.appendChild(div);
+				var table = document.createElement('table');
+				table.style = "width: 100%;text-align: center;";
+				dialog.body.appendChild(table);
+				var tr = document.createElement('tr');
+				tr.style = "font-weight: bold;";
+				tr.appendChild(document.createElement('td'));
+				tr.appendChild(document.createElement('td'));
+				tr.appendChild(document.createElement('td'));
+				table.appendChild(tr);
+				tr = document.createElement('tr');
+				tr.appendChild(document.createElement('td'));
+				tr.appendChild(document.createElement('td'));
+				tr.appendChild(document.createElement('td'));
+				table.appendChild(tr);
+				tr = document.createElement('tr');
+				tr.appendChild(document.createElement('td'));
+				tr.appendChild(document.createElement('td'));
+				tr.appendChild(document.createElement('td'));
+				table.appendChild(tr);
+				tr = document.createElement('tr');
+				tr.appendChild(document.createElement('td'));
+				tr.appendChild(document.createElement('td'));
+				tr.appendChild(document.createElement('td'));
+				table.appendChild(tr);
+				tr = document.createElement('tr');
+				tr.appendChild(document.createElement('td'));
+				tr.appendChild(document.createElement('td'));
+				tr.appendChild(document.createElement('td'));
+				table.appendChild(tr);
+				tr = document.createElement('tr');
+				tr.appendChild(document.createElement('td'));
+				tr.appendChild(document.createElement('td'));
+				tr.appendChild(document.createElement('td'));
+				table.appendChild(tr);
+				table.getElementsByTagName("tr")[0].getElementsByTagName("td")[0].style = "width: 40%;";
+				table.getElementsByTagName("tr")[0].getElementsByTagName("td")[1].textContent = unescape(JSON.parse('"' +document.getElementById('header_values_xp_bar').dataset.tooltip.match(/"([^:]+):"/i)[1]+ '"'));
+				table.getElementsByTagName("tr")[0].getElementsByTagName("td")[2].textContent = unescape(JSON.parse('"' +document.getElementById('icon_gold').dataset.tooltip.match(/"([^"]+)"/i)[1]+ '"'));
+				table.getElementsByTagName("tr")[1].getElementsByTagName("td")[0].textContent = gca_locale.get("global", "gold_exp_data_today") + ":";
+				table.getElementsByTagName("tr")[2].getElementsByTagName("td")[0].textContent = gca_locale.get("global", "gold_exp_data_week") + ":";
+				table.getElementsByTagName("tr")[3].getElementsByTagName("td")[0].textContent = gca_locale.get("global", "gold_exp_data_avg_day") + ":";
+				table.getElementsByTagName("tr")[4].getElementsByTagName("td")[0].textContent = gca_locale.get("global", "gold_exp_data_to_level_up") + ":";
+				table.getElementsByTagName("tr")[5].getElementsByTagName("td")[0].textContent = gca_locale.get("global", "gold_exp_data_package_tax") + ":";
+				table.getElementsByTagName("tr")[1].getElementsByTagName("td")[0].style = "font-weight: bold;";
+				table.getElementsByTagName("tr")[2].getElementsByTagName("td")[0].style = "font-weight: bold;";
+				table.getElementsByTagName("tr")[3].getElementsByTagName("td")[0].style = "font-weight: bold;";
+				table.getElementsByTagName("tr")[4].getElementsByTagName("td")[0].style = "font-weight: bold;";
+				table.getElementsByTagName("tr")[5].getElementsByTagName("td")[0].style = "font-weight: bold;";
+				table.getElementsByTagName("tr")[1].id = "today_values";
+				table.getElementsByTagName("tr")[2].id = "days7_values";
+				table.getElementsByTagName("tr")[3].id = "average_per_day";
+				table.getElementsByTagName("tr")[4].id = "days_left_to_level_up";
+				table.getElementsByTagName("tr")[5].id = "gold_package_tax_estimation";
 				
 				// Add some space
 				var div = document.createElement('div');
@@ -3101,44 +3257,256 @@ var gca_global = {
 				canvas.id = "graph_canvas";
 				canvas.width = 500;
 				canvas.height = 200;
+				canvas.style = "padding: 10px;margin: -10px;background: rgba(255,255,255,0.7);border-radius: 5px;"
 				this.canvas = canvas;
 				dialog.body.appendChild(canvas);
 				
 				// Add description
-				div = document.createElement('div');
-				div.textContent = "Click on graph's legends to enable/disable data groups. Gold and Experience data are summed starting from 7 days ago."; // TODO : translations
-				dialog.body.appendChild(div);
+				//div = document.createElement('div');
+				//div.textContent = "Click on graph's legends to enable/disable data groups. Gold and Experience data are summed starting from 7 days ago."; // TODO : translations
+				//dialog.body.appendChild(div);
 				
 				// Add some space
 				var div = document.createElement('div');
 				div.className = "space";
 				dialog.body.appendChild(div);
 				
-				// Add Chart Lib
-				var scripts_loaded = 0;
-				var script = document.createElement('script');
-				script.src = gca_resources.folder + "libraries/Chart.min.js";
-				script.addEventListener('load', function(){
-					scripts_loaded++;
-					// If all scripts loaded
-					if(scripts_loaded == 2){
-						// Render chart
-						that.renderChart();
-					}
-				}, false);
-				document.getElementsByTagName('head')[0].appendChild(script);
-				script = document.createElement('script');
-				script.src = gca_resources.folder + "libraries/moment.min.js";
-				script.addEventListener('load', function(){
-					scripts_loaded++;
-					// If all scripts loaded
-					if(scripts_loaded == 2){
-						// Render chart
-						that.renderChart();
-					}
-				}, false);
-				document.getElementsByTagName('head')[0].appendChild(script);
+				var renderChart = function(){
+										// Values for the Data Plot
+					var data  = gca_data.section.get("data", "gold_exp_data", [[0,0,0]]);
+					
+					// Fix data
+					var seventh_day = -1;
+					var last_day = 0;
+					var exp_levelup = 0;
+					var goldData = [];
+					var expData = [];
+					var goldDataChange = [];
+					var expDataChange = [];
+					var goldDataAverage = [];
+					var expDataAverage = [];
+					var lastAverage = 0;
+					var countAverage = 1;
 
+					// Server time - 7 days (7 days = 7*24*60*60*1000 = 604800000 ms)
+					var seventh_day_timestamp = gca_tools.time.server() - 6048e5;
+					var last_day_timestamp = gca_tools.time.server() - 864e5;
+					var newdata=[];
+					
+					// For every data
+					data[-1]=[0,0,0];
+					for (var i = 0; i < data.length-1; i++) {
+						// If time is in the last 7 days
+						if(data[i][2] >= seventh_day_timestamp){
+							newdata.push(data[i-1]);
+							
+							// Sum some of the lost EXP from levelup
+							if(i>0 && data[i][1] < data[i-1][1]){
+								exp_levelup = exp_levelup + data[i-1][1];
+							}
+							// Calculate last 7 days Gold Data
+								goldData[i - seventh_day-1] = {
+									x : data[i][2],
+									y : (data[i][0] - data[seventh_day][0])
+								};
+								goldDataChange[i - seventh_day-1] = {
+									x : data[i][2],
+									y : ((i==0)?0:(data[i][0] - data[i-1][0]))
+								};
+							// Calculate last 7 days Exp Data
+								expData[i - seventh_day-1] = {
+									x : data[i][2],
+									y : (data[i][1]-data[seventh_day][1]+exp_levelup)
+								};
+								expDataChange[i - seventh_day-1] = {
+									x : data[i][2],
+									y : ((i==0)?0:(data[i][1] - data[i-1][1]))
+								};
+							
+							// Calculate average
+								var ratio = 0;
+								if(goldDataAverage.length==0){
+									lastAverage=seventh_day+1;
+									ratio = (data[i][2] - data[seventh_day][2]) / 864e5;
+									
+									goldDataAverage[0] = {
+										x : data[i][2],
+										y : Math.round((data[i][0] - data[seventh_day][0])/ratio)
+									};
+									expDataAverage[0] = {
+										x : data[i][2],
+										y : Math.round((data[i][1] - data[seventh_day][1])/ratio)
+									};
+								}else if( data[i][2]-data[lastAverage][2]>=864e5/2 ){
+									ratio = (data[i][2] - data[lastAverage][2]) / 864e5 ;
+									goldDataAverage[countAverage] = {
+										x : data[i][2],
+										y : Math.round((data[i][0] - data[lastAverage][0])/ratio)
+									};
+									expDataAverage[countAverage] = {
+										x : data[i][2],
+										y : Math.round((expData[i - seventh_day-1].y-expData[lastAverage-seventh_day-1].y)/ratio)
+									};
+									
+									lastAverage=i;
+									countAverage++;
+								}
+							
+							if(last_day==0 && data[i][2] >= last_day_timestamp){
+								last_day = i - seventh_day-1;
+							}
+						}else{
+							seventh_day = i;
+						}
+					}
+					newdata.push(data[i-1]);
+					
+					// Save only last 7 days data
+					gca_data.section.set("data", "gold_exp_data", newdata);
+					
+					// If there are no data
+					if(expData.length<1 || goldData.length<1){
+						document.getElementById('today_values').textContent+= " N/A";
+						document.getElementById('days7_values').textContent+= " N/A";
+						document.getElementById('average_per_day').textContent+= " N/A";
+						document.getElementById('days_left_to_level_up').textContent+= " N/A";
+						document.getElementById('graph_canvas').style.display = "none";
+					}else{
+						// Experience translate
+						var exp_tran = unescape(JSON.parse('"' +document.getElementById('header_values_xp_bar').dataset.tooltip.match(/"([^:]+):"/i)[1]+ '"'));
+						// Gold translate
+						var gold_tran = unescape(JSON.parse('"' +document.getElementById('icon_gold').dataset.tooltip.match(/"([^"]+)"/i)[1]+ '"'));
+						
+						// Write data
+						document.getElementById('today_values').getElementsByTagName("td")[1].textContent = gca_tools.strings.insertDots(expData[expData.length-1].y-expData[last_day].y)+" ";
+						document.getElementById('today_values').getElementsByTagName("td")[2].textContent = gca_tools.strings.insertDots(goldData[goldData.length-1].y-goldData[last_day].y)+" ";
+						var img = document.createElement('img');
+						img.src = "img/ui/icon_level_small.gif";
+						img.border = "0";
+						document.getElementById('today_values').getElementsByTagName("td")[1].appendChild(img);
+						img = document.createElement('img');
+						img.src = "img/res2.gif";
+						img.align = "absmiddle";
+						img.border = "0";
+						document.getElementById('today_values').getElementsByTagName("td")[2].appendChild(img);
+						
+						document.getElementById('days7_values').getElementsByTagName("td")[1].textContent = gca_tools.strings.insertDots(expData[expData.length-1].y)+" ";
+						document.getElementById('days7_values').getElementsByTagName("td")[2].textContent = gca_tools.strings.insertDots(goldData[goldData.length-1].y)+" ";
+						var img = document.createElement('img');
+						img.src = "img/ui/icon_level_small.gif";
+						img.border = "0";
+						document.getElementById('days7_values').getElementsByTagName("td")[1].appendChild(img);
+						img = document.createElement('img');
+						img.src = "img/res2.gif";
+						img.align = "absmiddle";
+						img.border = "0";
+						document.getElementById('days7_values').getElementsByTagName("td")[2].appendChild(img);
+						
+						document.getElementById('average_per_day').getElementsByTagName("td")[1].textContent = gca_tools.strings.insertDots(Math.round(expData[expData.length-1].y/7))+" ";
+						document.getElementById('average_per_day').getElementsByTagName("td")[2].textContent = gca_tools.strings.insertDots(Math.round(goldData[goldData.length-1].y/7))+" ";
+						var img = document.createElement('img');
+						img.src = "img/ui/icon_level_small.gif";
+						img.border = "0";
+						document.getElementById('average_per_day').getElementsByTagName("td")[1].appendChild(img);
+						img = document.createElement('img');
+						img.src = "img/res2.gif";
+						img.align = "absmiddle";
+						img.border = "0";
+						document.getElementById('average_per_day').getElementsByTagName("td")[2].appendChild(img);
+						
+						document.getElementById('days_left_to_level_up').getElementsByTagName("td")[1].textContent = Math.round((document.getElementById('header_values_xp_bar').dataset.tooltip.match(/"\d+ \\\/ (\d+)"/i)[1]-document.getElementById('header_values_xp_bar').dataset.tooltip.match(/"(\d+) \\\/ \d+"/i)[1])/(expData[expData.length-1].y/7));
+						document.getElementById('gold_package_tax_estimation').getElementsByTagName("td")[2].textContent = gca_tools.strings.insertDots( Math.round(goldData[goldData.length-1].y/50) );
+						img = document.createElement('img');
+						img.src = "img/res2.gif";
+						img.align = "absmiddle";
+						img.border = "0";
+						document.getElementById('gold_package_tax_estimation').getElementsByTagName("td")[2].appendChild(img);
+						
+						// Populate graph
+						new Chart(document.getElementById('graph_canvas'), {
+							type: 'line',
+							data: {
+								datasets: [
+									{
+										label: gold_tran,
+										fill: true,
+										backgroundColor: "rgba(255,193,7,0.3)",
+										borderColor: "rgba(255,193,7,1)",
+										data: goldDataAverage
+									},
+									{
+										label: "Total "+gold_tran,
+										fill: true,
+										backgroundColor: "rgba(255,193,7,0.3)",
+										borderColor: "rgba(255,193,7,1)",
+										data: goldData,
+										hidden: true
+									},
+									{
+										label: 'Measurements', // TODO - translate
+										type: 'line',
+										backgroundColor: "rgba(255,193,7,0.3)",
+										borderColor: "rgba(255,193,7,1)",
+										data: goldDataChange,
+										hidden: true,
+										pointStyle: "crossRot",
+										showLine: false
+									},
+									{
+										label: exp_tran,
+										fill: true,
+										backgroundColor: "rgba(75,192,192,0.3)",
+										borderColor: "rgba(75,192,192,1)",
+										data: expDataAverage,
+										hidden: true
+									},
+									{
+										label: "Total "+exp_tran,
+										fill: true,
+										backgroundColor: "rgba(75,192,192,0.3)",
+										borderColor: "rgba(75,192,192,1)",
+										data: expData,
+										hidden: true
+									},
+									{
+										label: 'Measurements', // TODO - translate
+										type: 'line',
+										backgroundColor: "rgba(75,192,192,0.3)",
+										borderColor: "rgba(75,192,192,1)",
+										data: expDataChange,
+										hidden: true,
+										pointStyle: "cross",
+										showLine: false
+									}
+								]
+							},
+							options: {
+								scales: {
+									xAxes: [{
+										type: 'time',
+										time: {
+											unit: 'day',
+											displayFormats: {
+												day: 'MMM D'
+											},
+											tooltipFormat: 'MMM D, h:mm:ss a'
+										}
+									}],
+									yAxes: [{
+										ticks: {
+											min: 0
+										}
+									}]
+								},
+								legend: {
+									position : 'bottom'
+								}
+							}
+						});
+					}
+				}
+				gca_global.scripts.chartScript.create(renderChart);
+				
 				// Add close Button
 				var button = document.createElement('input');
 				button.className = "button3";
@@ -3152,152 +3520,6 @@ var gca_global = {
 
 				// Open dialog
 				this.dialog.open();
-			},
-
-			renderChart : function(){
-				// Values for the Data Plot
-				var data  = gca_data.section.get("data", "gold_exp_data", [[0,0,0]]);
-				
-				// Fix data
-				var seventh_day = 0;
-				var last_day = 0;
-				var exp_levelup = 0;
-				var Xdata = [];
-				var Ydata = [];
-				var XdataChange = [];
-				var YdataChange = [];
-				var labelsArr = [];
-
-				// Server time - 7 days (7 days = 7*24*60*60*1000 = 604800000 ms)
-				var seventh_day_timestamp = gca_tools.time.server() - 6048e5;
-				var last_day_timestamp = gca_tools.time.server() - 864e5;
-				
-				// For every data
-				for (var i = 0; i < data.length; i++) {
-					// If time in the last 7 days
-					if(data[i][2] >= seventh_day_timestamp){
-						// Sum some of the lost EXP from levelup
-						if(i>0 && data[i][1] < data[i-1][1]){
-							exp_levelup = exp_levelup + data[i-1][1];
-						}
-						// Calculate last 7 days Gold Data
-						Xdata[i - seventh_day] = {
-							x : data[i][2],
-							y : (data[i][0] - data[seventh_day][0])
-						};
-						XdataChange[i - seventh_day] = {
-							x : data[i][2],
-							y : ((i==0)?0:(data[i][0] - data[i-1][0]))
-						};
-						// Calculate last 7 days Exp Data
-						Ydata[i - seventh_day] = {
-							x : data[i][2],
-							y : (data[i][1]-data[seventh_day][1]+exp_levelup)
-						};
-						YdataChange[i - seventh_day] = {
-							x : data[i][2],
-							y : ((i==0)?0:(data[i][1] - data[i-1][1]))
-						};
-						
-						if(data[i][2] <= seventh_day_timestamp){
-							last_day = i;
-						}
-					}else{
-						seventh_day = i;
-					}
-				}
-				
-				// If there are no data
-				if(Ydata.length<1 || Xdata.length<1){
-					document.getElementById('today_values').textContent+= " N/A";
-					document.getElementById('days7_values').textContent+= " N/A";
-					document.getElementById('average_per_day').textContent+= " N/A";
-					document.getElementById('days_left_to_level_up').textContent+= " N/A";
-					document.getElementById('graph_canvas').style.display = "none";
-				}else{
-					// Experience translate
-					var exp_tran = unescape(JSON.parse('"' +document.getElementById('header_values_xp_bar').dataset.tooltip.match(/"([^:]+):"/i)[1]+ '"'));
-					// Gold translate
-					var gold_tran = unescape(JSON.parse('"' +document.getElementById('icon_gold').dataset.tooltip.match(/"([^"]+)"/i)[1]+ '"'));
-					
-					// Write raw data - TODO needs a little styling + today_values=last 24h not today
-					document.getElementById('today_values').textContent+= " "+(Ydata[Ydata.length-1].y-Ydata[last_day].y) +" "+exp_tran+" / "+(Xdata[Xdata.length-1].y-Xdata[last_day].y)+" ";
-					var img = document.createElement('img');
-					img.src = "img/res2.gif";
-					img.align = "absmiddle";
-					img.border = "0";
-					document.getElementById('today_values').appendChild(img);
-					
-					document.getElementById('days7_values').textContent+= " "+Ydata[Ydata.length-1].y +" "+exp_tran+" / "+Xdata[Xdata.length-1].y+" ";
-					var img = document.createElement('img');
-					img.src = "img/res2.gif";
-					img.align = "absmiddle";
-					img.border = "0";
-					document.getElementById('days7_values').appendChild(img);
-					
-					document.getElementById('average_per_day').textContent+= " "+ Math.round(Ydata[Ydata.length-1].y/7) +" "+exp_tran+" / "+Math.round(Xdata[Xdata.length-1].y/7)+" ";
-					var img = document.createElement('img');
-					img.src = "img/res2.gif";
-					img.align = "absmiddle";
-					img.border = "0";
-					document.getElementById('average_per_day').appendChild(img);
-					
-					document.getElementById('days_left_to_level_up').textContent+= " "+ Math.round((document.getElementById('header_values_xp_bar').dataset.tooltip.match(/"\d+ \\\/ (\d+)"/i)[1]-document.getElementById('header_values_xp_bar').dataset.tooltip.match(/"(\d+) \\\/ \d+"/i)[1])/(Ydata[Ydata.length-1].y/7)*100)/100;
-					
-					// Populate graph
-					new Chart(this.canvas, {
-						type: 'line',
-						data: {
-							datasets: [
-								{
-									label: gold_tran,
-									fill: true,
-									backgroundColor: "rgba(255,193,7,0.3)",
-									borderColor: "rgba(255,193,7,1)",
-									data: Xdata
-								},
-								{
-									label: 'Measurements', // TODO - translate
-									type: 'bubble',
-									backgroundColor: "rgba(255,193,7,0.3)",
-									borderColor: "rgba(255,193,7,1)",
-									data: XdataChange
-								},
-								{
-									label: exp_tran,
-									fill: true,
-									backgroundColor: "rgba(75,192,192,0.3)",
-									borderColor: "rgba(75,192,192,1)",
-									data: Ydata
-								},
-								{
-									label: 'Measurements', // TODO - translate
-									type: 'bubble',
-									backgroundColor: "rgba(75,192,192,0.3)",
-									borderColor: "rgba(75,192,192,1)",
-									data: YdataChange
-								}
-							]
-						},
-						options: {
-							scales: {
-								xAxes: [{
-									type: 'time',
-									time: {
-										unit: 'day',
-										displayFormats: {
-											day: 'MMM D'
-										},
-										tooltipFormat: 'MMM D, h:mm:ss a'
-									}
-								}]
-							},
-							legend: {
-								position : 'bottom'
-							}
-						}
-					});
-				}
 			}
 		}
 	},
@@ -3310,43 +3532,61 @@ var gca_global = {
 		// Create bar
 		bar : function(){
 			// Set up sound bar
-			var bar = document.createElement('div');
-			bar.className = "gca_sound_bar";
+			this.elements.bar = document.createElement('div');
+			this.elements.bar.className = "gca_sound_bar";
+
 			// Toggle sound icon
 			this.elements.toggleIcon = document.createElement('div');
 			this.elements.toggleIcon.className = "sound-toggle";
-			if(gca_audio.isMuted()){
-				this.elements.toggleIcon.className += " mute";
-			}
+			this.elements.bar.appendChild(this.elements.toggleIcon);
+
+			// Add on page
+			document.body.appendChild(this.elements.bar);
+			this.update();
+
 			// Save instance
 			var that = this;
+
+			// On volume toggle
 			this.elements.toggleIcon.addEventListener("click", function(){
 				that.toggle();
 			}, false);
 
-			bar.appendChild(this.elements.toggleIcon);
-
-			// Add on page
-			document.body.appendChild(bar);
+			// On volume change
+			gca_tools.event.addListener("volume-change", function(){
+				that.update();
+			});
 		},
 
 		// Turn on or off audio
 		toggle : function(){
 			// If element not yet created
 			if(!this.elements.toggleIcon)
-				// return
 				return;
+
 			// Toggle
 			if(gca_audio.isMuted()){
 				// Unmute
 				gca_audio.mute(false);
-				this.elements.toggleIcon.className = "sound-toggle";
+				this.update();
 				gca_audio.play("sound_toggle");
 			}
 			else{
 				// Mute
 				gca_audio.mute(true);
+				this.update();
+			}
+		},
+
+		// Update visuals
+		update : function(){
+			// If is muted
+			if(gca_audio.isMuted()){
 				this.elements.toggleIcon.className = "sound-toggle mute";
+			}
+			// If not muted
+			else{
+				this.elements.toggleIcon.className = "sound-toggle";
 			}
 		}
 	}

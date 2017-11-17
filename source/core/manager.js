@@ -85,6 +85,16 @@ var manager = {
 				case "inventory":
 					this.section.merchants();
 					break;
+					
+				// Magus
+				case "magus":
+					this.section.magus();
+					break;
+				
+				// Forge
+				case "forge":
+					this.section.forge();
+					break;
 
 				// Market
 				case "market":
@@ -231,15 +241,14 @@ var manager = {
 			// Server quest
 			if(
 				info.page.queries.submod == 'serverQuest' || 
-				info.page.queries.submod == 'serverQuestHighscore'
+				info.page.queries.submod == 'serverQuestHighscore' ||
+				!Number.isInteger(info.page.queries.loc) // loc=desert
 			){
 				this.event.serverQuest();
 			}
 
 			// Expedition
-			else{
-				tools.loadScript("source/location.js");
-			}
+			tools.loadScript("source/location.js");
 		},
 
 		// Merchants section
@@ -247,6 +256,16 @@ var manager = {
 			tools.loadScript("source/merchants.js");
 		},
 
+		// Magus section
+		magus : function() {
+			tools.loadScript("source/magus.js");
+		},
+		
+		// Forge section
+		forge : function() {
+			tools.loadScript("source/forge.js");
+		},
+		
 		// Markets
 		markets : function() {
 			tools.loadScript("source/markets.js");
@@ -262,6 +281,7 @@ var manager = {
 				info.page.queries.submod == 'sendValidationLink' || 
 				info.page.queries.submod == 'deleteAccSettings'
 			) {
+				locale.loadAllLanguages();
 				tools.loadScript("source/settings.js");
 			}
 			// Character settings
